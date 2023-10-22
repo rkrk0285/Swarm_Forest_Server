@@ -1,0 +1,11 @@
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\bin\Debug\net6.0\NetworkLibrary.deps.json
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\bin\Debug\net6.0\NetworkLibrary.dll
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\bin\Debug\net6.0\NetworkLibrary.pdb
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\NetworkLibrary.GeneratedMSBuildEditorConfig.editorconfig
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\NetworkLibrary.AssemblyInfoInputs.cache
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\NetworkLibrary.AssemblyInfo.cs
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\NetworkLibrary.csproj.CoreCompileInputs.cache
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\NetworkLibrary.dll
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\refint\NetworkLibrary.dll
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\NetworkLibrary.pdb
+C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\obj\Debug\net6.0\ref\NetworkLibrary.dll
