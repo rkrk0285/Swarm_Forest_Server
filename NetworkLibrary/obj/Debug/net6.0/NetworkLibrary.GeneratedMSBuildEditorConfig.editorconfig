@@ -8,4 +8,4 @@ build_property.PlatformNeutralAssembly =
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = NetworkLibrary
-build_property.ProjectDir = C:\CS\Graduate\temp\Swarm_Forest_Server\NetworkLibrary\
+build_property.ProjectDir = C:\CS\Graduate\Swarm_Forest_Server\NetworkLibrary\
