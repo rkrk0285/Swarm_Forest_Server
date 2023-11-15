@@ -1,6 +1,9 @@
+using Common.Authorization;
+using GameServer.Configuration;
 using GameServer.Room;
 using NetworkLibrary;
 using Server.Session;
+using StackExchange.Redis;
 using System.Net;
 
 namespace GameServer
@@ -36,28 +39,28 @@ namespace GameServer
             builder.Services.AddSwaggerGen();
 
             // ============================ Added ============================
-            //IConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
-            //    builder.Configuration.GetConnectionString("SessionConnectionString")
-            //);
-            //builder.Services.AddScoped(s => redis.GetDatabase());
+            IConnectionMultiplexer redis = ConnectionMultiplexer.Connect(
+                builder.Configuration.GetConnectionString("SessionConnectionString")
+            );
+            builder.Services.AddScoped(s => redis.GetDatabase());
 
-            //RedisConfig.Redis = ConnectionMultiplexer.Connect(
-            //    builder.Configuration.GetConnectionString("SessionConnectionString")
-            //);
-            //IDatabase database = RedisConfig.Redis.GetDatabase();
-            //string serverSessionId = Guid.NewGuid().ToString();
-            //database.StringSet("serversession:GameServer", serverSessionId);
-            //ServerConfig.ServerSessionId = serverSessionId;
+            RedisConfig.Redis = ConnectionMultiplexer.Connect(
+                builder.Configuration.GetConnectionString("SessionConnectionString")
+            );
+            IDatabase database = RedisConfig.Redis.GetDatabase();
+            string serverSessionId = Guid.NewGuid().ToString();
+            database.StringSet("serversession:GameServer", serverSessionId);
+            ServerConfig.ServerSessionId = serverSessionId;
 
-            //builder.Services.AddScoped<IAuthorizationRepository, AuthorizationRepositoryRedis>();
-            //builder.Services.AddScoped<AuthorizationService>();
+            builder.Services.AddScoped<IAuthorizationRepository, AuthorizationRepositoryRedis>();
+            builder.Services.AddScoped<AuthorizationService>();
 
-            //ServerConfig.LoginServerPrivateAddress = builder.Configuration.GetValue<string>("ServerInfo:LoginServerPrivateAddress");
-            //ServerConfig.MatchServerPrivateAddress = builder.Configuration.GetValue<string>("ServerInfo:MatchServerPrivateAddress");
-            //ServerConfig.GameServerPrivateAddress = builder.Configuration.GetValue<string>("ServerInfo:GameServerPrivateAddress");
-            //ServerConfig.LoginServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:LoginServerPublicAddress");
-            //ServerConfig.MatchServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:MatchServerPublicAddress");
-            //ServerConfig.GameServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:GameServerPublicAddress");
+            ServerConfig.LoginServerPrivateAddress = builder.Configuration.GetValue<string>("ServerInfo:LoginServerPrivateAddress");
+            ServerConfig.MatchServerPrivateAddress = builder.Configuration.GetValue<string>("ServerInfo:MatchServerPrivateAddress");
+            ServerConfig.GameServerPrivateAddress = builder.Configuration.GetValue<string>("ServerInfo:GameServerPrivateAddress");
+            ServerConfig.LoginServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:LoginServerPublicAddress");
+            ServerConfig.MatchServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:MatchServerPublicAddress");
+            ServerConfig.GameServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:GameServerPublicAddress");
             // ============================ Added ============================
 
             var app = builder.Build();
