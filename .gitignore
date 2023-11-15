@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 bin/
 obj/
+/GameServer/appsettings.json
+/LoginServer/appsettings.json
+/MatchServer/appsettings.json
