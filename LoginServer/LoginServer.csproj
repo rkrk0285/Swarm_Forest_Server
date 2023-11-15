@@ -7,7 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.24.4" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.25" />
+    <PackageReference Include="MySql.EntityFrameworkCore" Version="6.0.21" />
     <PackageReference Include="StackExchange.Redis" Version="2.6.122" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
@@ -16,9 +18,5 @@
     <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\NetworkLibrary\NetworkLibrary.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Packet\Protobuf\" />
-  </ItemGroup>
-
+  
 </Project>
