@@ -39,7 +39,7 @@
             {
                 foreach (var room in rooms.Values)
                 {
-                    //
+                    room.Update();
                 }
             }
         }

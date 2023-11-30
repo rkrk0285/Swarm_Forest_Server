@@ -1,4 +1,5 @@
 ﻿using GameServer.Configuration;
+using GameServer.Room;
 using Google.Protobuf;
 using NetworkLibrary;
 using Server.Packet;
@@ -8,10 +9,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
+using Domino.Networking.TCP;
+
 namespace Server.Session
 {
     public class ClientSession : PacketSession
     {
+        public GameRoom? Room { get; set; }
+
         public override async Task OnConnected(EndPoint endPoint)
         {
             SessionId = await Authorize();
@@ -98,16 +103,22 @@ namespace Server.Session
             return SessionManager.Instance.Add(userId, this) ? userId : -1;
         }
 
-        public void Send(IMessage packet)
+        //public void Send(IMessage packet)
+        //{
+        //    //string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+        //    //PacketId msgId = (PacketId)Enum.Parse(typeof(PacketId), msgName);
+        //    //ushort size = (ushort)packet.CalculateSize();
+        //    //byte[] sendBuffer = new byte[size + 4];
+        //    //Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+        //    //Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+        //    //Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+        //    //Send(new ArraySegment<byte>(sendBuffer));
+        //}
+
+        public void Send(PacketBase packet)
         {
-            //string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
-            //PacketId msgId = (PacketId)Enum.Parse(typeof(PacketId), msgName);
-            //ushort size = (ushort)packet.CalculateSize();
-            //byte[] sendBuffer = new byte[size + 4];
-            //Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
-            //Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
-            //Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
-            //Send(new ArraySegment<byte>(sendBuffer));
+            var sendBuffer = Coder.Encode(packet);
+            Send(new ArraySegment<byte>(sendBuffer));
         }
     }
 }
