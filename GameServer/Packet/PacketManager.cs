@@ -17,7 +17,12 @@ namespace Server.Packet
 
         private PacketManager()
         {
-
+            packetHandlers.Add(PacketID.MatchJoin, PacketHandler.MatchJoinHandler);
+            packetHandlers.Add(PacketID.MoveObject, PacketHandler.MoveObjectHandler);
+            packetHandlers.Add(PacketID.ObjectDead, PacketHandler.ObjectDeadHandler);
+            packetHandlers.Add(PacketID.ObjectIDReq, PacketHandler.ObjectIDReqHandler);
+            packetHandlers.Add(PacketID.InstantiateObject, PacketHandler.InstantiateObjectHandler);
+            packetHandlers.Add(PacketID.UpdateObjectStatus, PacketHandler.UpdateObjectStatusHandler);
         }
 
         // [size(2)][packetId(2)][...]
