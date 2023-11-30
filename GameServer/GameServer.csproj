@@ -19,6 +19,15 @@
 
   <ItemGroup>
     <Folder Include="Packet\Protobuf\" />
+    <Folder Include="Resource\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\Applications\Unity\Hub\Editor\2022.3.11f1\Unity.app\Contents\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Resource\" />
+  </ItemGroup>
 </Project>
