@@ -18,6 +18,7 @@ namespace Domino.Networking.TCP
         MatchCancel,
         MatchCreated,
         MatchJoin,
+        MatchStart,
         MoveObject,
         CastSkill,
         ObjectDead,
@@ -80,6 +81,24 @@ namespace Domino.Networking.TCP
             public static MatchCancel Create()
             {
                 return new MatchCancel();
+            }
+        }
+    }
+
+    [Serializable]
+    public class MatchStart : PacketBase
+    {
+
+        private MatchStart()
+        {
+            PacketID = PacketID.MatchStart;
+        }
+
+        public class Factory
+        {
+            public static MatchStart Create()
+            {
+                return new MatchStart();
             }
         }
     }

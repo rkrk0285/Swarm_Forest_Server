@@ -4,7 +4,6 @@ using Google.Protobuf;
 using Server.Session;
 using GameServer.Resource;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
 using System;
 
 namespace GameServer.Room
@@ -53,8 +52,6 @@ namespace GameServer.Room
             //Broadcast(packet);
         }
 
-
-
         public void MoveToTarget(int ObjectID, DateTime movementTime, Vector3 current, Vector3 target)
         {
             // 목적지에 이동했을 경우 종료 
@@ -84,7 +81,7 @@ namespace GameServer.Room
             Push(MoveToTarget, ObjectID, movementTime, afterPosition, target);
         }
 
-        public void ObjectDead(ClientSession _, ObjectDead packet)
+        public void ObjectDead(ClientSession session, ObjectDead packet)
         {
             var objectID = packet.ObjectID;
             var objectType = Status[objectID].ObjectType;
@@ -97,7 +94,7 @@ namespace GameServer.Room
             Status.Remove(objectID);
             ObjectIDManager.Instance.Return(objectID);
             
-            Broadcast(packet);
+            Broadcast(packet, session);
         }
 
         public void ObjectIDReq(ClientSession session, ObjectIDReq _)
@@ -142,6 +139,7 @@ namespace GameServer.Room
         {
             IsGameRunning = true;
             ResetEliteMonsterSpawnTimer();
+            Broadcast(MatchStart.Factory.Create());
         }
 
         private TimeSpan GetEliteMonsterCooldown(int objectType)
@@ -177,15 +175,13 @@ namespace GameServer.Room
 
         private void CheckEliteMonsterSpawnTimer()
         {
+            var now = DateTime.Now;
+
             if (!LastExecuteTime_CheckEliteMonsterSpawnTimer.HasValue)
             {
-                LastExecuteTime_CheckEliteMonsterSpawnTimer = DateTime.Now;
+                LastExecuteTime_CheckEliteMonsterSpawnTimer = now;
             }
-            else if
-                (
-                DateTime.Now <
-                LastExecuteTime_CheckEliteMonsterSpawnTimer.Value + TimeSpan.FromMilliseconds(333)
-                )
+            else if(now < LastExecuteTime_CheckEliteMonsterSpawnTimer.Value + TimeSpan.FromMilliseconds(333))
             {
                 return;
             }
@@ -196,11 +192,11 @@ namespace GameServer.Room
                 var isSpawned = EliteMonsterSpawnTimer[objectType].Value;
 
                 if (isSpawned) continue;
-                if(nextSpawnTime <= DateTime.Now)
+                if(nextSpawnTime <= now)
                 {
                     EliteMonsterSpawnTimer[objectType] = new KeyValuePair<DateTime, bool>
                     (
-                        DateTime.Now, true
+                        now, true
                     );
 
                     var objectID = ObjectIDManager.Instance.Get();
@@ -217,10 +213,12 @@ namespace GameServer.Room
                 }
                 else
                 {
-                    var remains = nextSpawnTime - DateTime.Now;
+                    var remains = nextSpawnTime - now;
                     Broadcast(EliteMonsterTimer.Factory.Create(objectType, remains.TotalSeconds));
                 }
             }
+
+            LastExecuteTime_CheckEliteMonsterSpawnTimer = now;
         }
 
         private void Broadcast(PacketBase packet)
