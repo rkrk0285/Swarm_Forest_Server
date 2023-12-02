@@ -1,6 +1,6 @@
-﻿using Domino.Networking.TCP;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Google.Protobuf;
+using Google.Protobuf.GameProtocol;
 using NetworkLibrary;
 
 namespace Server.Packet
@@ -11,56 +11,51 @@ namespace Server.Packet
         static PacketManager instance = new PacketManager();
         public static PacketManager Instance { get { return instance; } }
 
-        //Dictionary<ushort, Func<ArraySegment<byte>, IMessage>> packetMakers = new Dictionary<ushort, Func<ArraySegment<byte>, IMessage>>();
-        //Dictionary<ushort, Action<PacketSession, IMessage>> packetHandlers = new Dictionary<ushort, Action<PacketSession, IMessage>>();
-        Dictionary<PacketID, Action<PacketSession, PacketBase>> packetHandlers = new Dictionary<PacketID, Action<PacketSession, PacketBase>>();
+        Dictionary<ushort, Func<ArraySegment<byte>, IMessage>> packetMakers = new Dictionary<ushort, Func<ArraySegment<byte>, IMessage>>();
+        Dictionary<ushort, Action<PacketSession, IMessage>> packetHandlers = new Dictionary<ushort, Action<PacketSession, IMessage>>();
+        //Dictionary<PacketIDs, Action<PacketSession, PacketBase>> packetHandlers = new Dictionary<PacketIDs, Action<PacketSession, PacketBase>>();
 
         private PacketManager()
         {
-            packetHandlers.Add(PacketID.MatchJoin, PacketHandler.MatchJoinHandler);
-            packetHandlers.Add(PacketID.MoveObject, PacketHandler.MoveObjectHandler);
-            packetHandlers.Add(PacketID.ObjectDead, PacketHandler.ObjectDeadHandler);
-            packetHandlers.Add(PacketID.ObjectIDReq, PacketHandler.ObjectIDReqHandler);
-            packetHandlers.Add(PacketID.InstantiateObject, PacketHandler.InstantiateObjectHandler);
-            packetHandlers.Add(PacketID.UpdateObjectStatus, PacketHandler.UpdateObjectStatusHandler);
+            packetMakers.Add((ushort)PacketId.Matchjoin, MakePacket<MatchJoin>);
+            packetMakers.Add((ushort)PacketId.Moveobject, MakePacket<MoveObject>);
+            packetMakers.Add((ushort)PacketId.Objectdead, MakePacket<ObjectDead>);
+            packetMakers.Add((ushort)PacketId.Objectidreq, MakePacket<ObjectIDReq>);
+            packetMakers.Add((ushort)PacketId.Instantiateobject, MakePacket<InstantiateObject>);
+            packetMakers.Add((ushort)PacketId.Updateobjectstatus, MakePacket<UpdateObjectStatus>);
+
+            packetHandlers.Add((ushort)PacketId.Matchjoin, PacketHandler.MatchJoinHandler);
+            packetHandlers.Add((ushort)PacketId.Moveobject, PacketHandler.MoveObjectHandler);
+            packetHandlers.Add((ushort)PacketId.Objectdead, PacketHandler.ObjectDeadHandler);
+            packetHandlers.Add((ushort)PacketId.Objectidreq, PacketHandler.ObjectIDReqHandler);
+            packetHandlers.Add((ushort)PacketId.Instantiateobject, PacketHandler.InstantiateObjectHandler);
+            packetHandlers.Add((ushort)PacketId.Updateobjectstatus, PacketHandler.UpdateObjectStatusHandler);
         }
 
         // [size(2)][packetId(2)][...]
         public void OnPacketReceived(PacketSession session, ArraySegment<byte> buffer)
         {
-            if (buffer.Array is null)
+            ushort count = 0;
+            ushort packetSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+            count += 2;
+            ushort packetId = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+            count += 2;
+
+            // Make packet
+            Func<ArraySegment<byte>, IMessage> packetMaker = null;
+            if (packetMakers.TryGetValue(packetId, out packetMaker))
             {
-                Debug.WriteLine("Disconnected");
+                IMessage packet = packetMaker.Invoke(buffer);
+
+                // Invoke packet handler
+                Action<PacketSession, IMessage> packetHandler = null;
+                packetHandlers.TryGetValue(packetId, out packetHandler);
+                packetHandler.Invoke(session, packet);
+            }
+            else
+            {
                 session.Disconnect();
             }
-
-            var packet = Coder.Decode<PacketBase>(buffer.Array);
-            var packetID = packet.PacketID;
-            packetHandlers.TryGetValue(packetID, out var handler);
-            handler?.Invoke(session, packet);
-
-
-            //ushort count = 0;
-            //ushort packetSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
-            //count += 2;
-            //ushort packetId = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
-            //count += 2;
-
-            //// Make packet
-            //Func<ArraySegment<byte>, IMessage> packetMaker = null;
-            //if (packetMakers.TryGetValue(packetId, out packetMaker))
-            //{
-            //    IMessage packet = packetMaker.Invoke(buffer);
-
-            //    // Invoke packet handler
-            //    Action<PacketSession, IMessage> packetHandler = null;
-            //    packetHandlers.TryGetValue(packetId, out packetHandler);
-            //    packetHandler.Invoke(session, packet);
-            //}
-            //else
-            //{
-            //    session.Disconnect();
-            //}
         }
 
         T MakePacket<T>(ArraySegment<byte> buffer) where T : IMessage, new()

@@ -1,8 +1,7 @@
-﻿                                                                                                                   using Google.Protobuf;
-using Google.Protobuf.MatchProtocol;
-using NetworkLibrary;
+﻿using NetworkLibrary;
 using System.Diagnostics;
-using Domino.Networking.TCP;
+using Google.Protobuf;
+using Google.Protobuf.MatchProtocol;
 
 namespace Server.Packet
 {
@@ -12,18 +11,15 @@ namespace Server.Packet
         static PacketManager instance = new PacketManager();
         public static PacketManager Instance { get { return instance; } }
 
-        //Dictionary<ushort, Func<ArraySegment<byte>, IMessage>> packetMakers = new Dictionary<ushort, Func<ArraySegment<byte>, IMessage>>();
-        //Dictionary<ushort, Action<PacketSession, IMessage>> packetHandlers = new Dictionary<ushort, Action<PacketSession, IMessage>>();
-        Dictionary<PacketID, Action<PacketSession, PacketBase>> packetHandlers = new Dictionary<PacketID, Action<PacketSession, PacketBase>>();
+        Dictionary<ushort, Func<ArraySegment<byte>, IMessage>> packetMakers = new Dictionary<ushort, Func<ArraySegment<byte>, IMessage>>();
+        Dictionary<ushort, Action<PacketSession, IMessage>> packetHandlers = new Dictionary<ushort, Action<PacketSession, IMessage>>();
 
         private PacketManager()
         {
-            //packetMakers.Add((ushort)PacketId.CJoin, MakePacket<C_Join>);
-            //packetHandlers.Add((ushort)PacketId.CJoin, PacketHandler.C_JoinHandler);
-            //packetMakers.Add((ushort)PacketId.CCancel, MakePacket<C_Cancel>);
-            //packetHandlers.Add((ushort)PacketId.CCancel, PacketHandler.C_CancelHandler);
-            packetHandlers.Add(PacketID.MatchRegister, PacketHandler.RegisterHandler);
-            packetHandlers.Add(PacketID.MatchCancel, PacketHandler.CancelHandler);
+            packetMakers.Add((ushort)PacketId.CJoin, MakePacket<C_Join>);
+            packetHandlers.Add((ushort)PacketId.CJoin, PacketHandler.C_JoinHandler);
+            packetMakers.Add((ushort)PacketId.CCancel, MakePacket<C_Cancel>);
+            packetHandlers.Add((ushort)PacketId.CCancel, PacketHandler.C_CancelHandler);
         }
 
         // [size(2)][packetId(2)][...]
@@ -35,33 +31,28 @@ namespace Server.Packet
                 session.Disconnect();
             }
 
-            var packet = Coder.Decode<PacketBase>(buffer.Array);
-            var packetID = packet.PacketID;
-            packetHandlers.TryGetValue(packetID, out var handler);
-            handler?.Invoke(session, packet);
+            ushort count = 0;
+            ushort packetSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
+            count += 2;
+            ushort packetId = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
+            count += 2;
 
-            //ushort count = 0;
-            //ushort packetSize = BitConverter.ToUInt16(buffer.Array, buffer.Offset);
-            //count += 2;
-            //ushort packetId = BitConverter.ToUInt16(buffer.Array, buffer.Offset + count);
-            //count += 2;
+            // Make packet
+            Func<ArraySegment<byte>, IMessage> packetMaker = null;
+            if (packetMakers.TryGetValue(packetId, out packetMaker))
+            {
+                IMessage packet = packetMaker.Invoke(buffer);
 
-            //// Make packet
-            //Func<ArraySegment<byte>, IMessage> packetMaker = null;
-            //if (packetMakers.TryGetValue(packetId, out packetMaker))
-            //{
-            //    IMessage packet = packetMaker.Invoke(buffer);
-
-            //    // Invoke packet handler
-            //    Action<PacketSession, IMessage> packetHandler = null;
-            //    packetHandlers.TryGetValue(packetId, out packetHandler);
-            //    packetHandler.Invoke(session, packet);
-            //}
-            //else
-            //{
-            //    Debug.WriteLine("Disconnected");
-            //    session.Disconnect();
-            //}
+                // Invoke packet handler
+                Action<PacketSession, IMessage> packetHandler = null;
+                packetHandlers.TryGetValue(packetId, out packetHandler);
+                packetHandler.Invoke(session, packet);
+            }
+            else
+            {
+                Debug.WriteLine("Disconnected");
+                session.Disconnect();
+            }
         }
 
         T MakePacket<T>(ArraySegment<byte> buffer) where T : IMessage, new()

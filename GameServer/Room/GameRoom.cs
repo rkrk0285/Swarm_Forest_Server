@@ -1,9 +1,8 @@
-﻿using Domino.Networking.TCP;
-using GameServer.Job;
+﻿using GameServer.Job;
 using Google.Protobuf;
+using Google.Protobuf.GameProtocol;
 using Server.Session;
 using GameServer.Resource;
-using UnityEngine;
 using System;
 
 namespace GameServer.Room
@@ -36,7 +35,7 @@ namespace GameServer.Room
 
         public void MoveObject(ClientSession _, MoveObject packet)
         {
-            if (!Status.ContainsKey(packet.ObjectID))
+            if (!Status.ContainsKey(packet.ObjectId))
             {
                 return;
             }
@@ -44,18 +43,20 @@ namespace GameServer.Room
             //float velocity = 10f;
 
             var now = DateTime.Now;
-            var objectID = packet.ObjectID;
+            var objectID = packet.ObjectId;
             ObjectMoveBeginTime[objectID] = now;
             ObjectMoveExecuteTime[objectID] = now;
-            Push(MoveToTarget, objectID, now, Status[objectID].position, packet.Position);
+            Push(MoveToTarget, objectID, now, Status[objectID].packetPosition, packet.Position);
 
             //Broadcast(packet);
         }
 
         public void MoveToTarget(int ObjectID, DateTime movementTime, Vector3 current, Vector3 target)
         {
+            var subVector = (current.ToUnityVector3() - target.ToUnityVector3());
+
             // 목적지에 이동했을 경우 종료 
-            if ((current - target).sqrMagnitude <= 0) return;
+            if (subVector.sqrMagnitude <= 0) return;
             // 새로운 이동 명령이 들어왔을 경우 이전에 실행중이던 이동명령을 무시
             if (ObjectMoveBeginTime[ObjectID] != movementTime) return;
             // 33ms에 한번 씩 실행하도록 제
@@ -68,22 +69,24 @@ namespace GameServer.Room
 
             var now = DateTime.Now;
             var deltaTime = (float)(now - ObjectMoveExecuteTime[ObjectID]).TotalMilliseconds;
-            var afterPosition = current + (target - current).normalized * 10f / deltaTime;
+            var afterPosition = current.ToUnityVector3() + subVector.normalized * (10f / deltaTime);
 
             Status[ObjectID].position = afterPosition;
 
-            Broadcast(Domino.Networking.TCP.MoveObject.Factory.Create(
-                ObjectID, afterPosition
-            )) ;
+            Broadcast(new MoveObject()
+            {
+                ObjectId = ObjectID,
+                Position = afterPosition.ToPacketVector3()
+            });
 
             ObjectMoveExecuteTime[ObjectID] = now;
 
-            Push(MoveToTarget, ObjectID, movementTime, afterPosition, target);
+            Push(MoveToTarget, ObjectID, movementTime, afterPosition.ToPacketVector3(), target);
         }
 
         public void ObjectDead(ClientSession session, ObjectDead packet)
         {
-            var objectID = packet.ObjectID;
+            var objectID = packet.ObjectId;
             var objectType = Status[objectID].ObjectType;
 
             if (MonsterInformation.Instance.Get(objectType) != null)
@@ -99,17 +102,20 @@ namespace GameServer.Room
 
         public void ObjectIDReq(ClientSession session, ObjectIDReq _)
         {
-            session.Send(ObjectIDRes.Factory.Create(ObjectIDManager.Instance.Get()));
+            session.Send(new ObjectIDRes()
+            {
+                ObjectId = ObjectIDManager.Instance.Get()
+            });
         }
 
         public void InstantiateObject(ClientSession _, InstantiateObject packet)
         {
-            Status.Add(packet.ObjectID, new ObjectStatus()
+            Status.Add(packet.ObjectId, new ObjectStatus()
             {
-                ObjectID = packet.ObjectID,
+                ObjectID = packet.ObjectId,
                 ObjectType = packet.ObjectType,
                 HP = packet.HP,
-                position = packet.Position
+                position = packet.Position.ToUnityVector3()
             });
 
             Broadcast(packet);
@@ -117,9 +123,9 @@ namespace GameServer.Room
 
         public void UpdateObjectStatus(ClientSession _, UpdateObjectStatus packet)
         {
-            if (!Status.ContainsKey(packet.ObjectID)) return;
+            if (!Status.ContainsKey(packet.ObjectId)) return;
 
-            Status[packet.ObjectID].HP = packet.HP;
+            Status[packet.ObjectId].HP = packet.HP;
             //Status[packet.ObjectID].Level = packet.Level;
 
             Broadcast(packet);
@@ -139,7 +145,6 @@ namespace GameServer.Room
         {
             IsGameRunning = true;
             ResetEliteMonsterSpawnTimer();
-            Broadcast(MatchStart.Factory.Create());
         }
 
         private TimeSpan GetEliteMonsterCooldown(int objectType)
@@ -202,26 +207,31 @@ namespace GameServer.Room
                     var objectID = ObjectIDManager.Instance.Get();
                     var monsterInfo = MonsterInformation.Instance.Get(objectType);
                     monsterInfo.ObjectID = objectID;
-                    Broadcast(Domino.Networking.TCP.InstantiateObject.Factory.Create(
-                        objectID,
-                        monsterInfo.ObjectType,
-                        monsterInfo.HP,
-                        monsterInfo.position
-                    ));
+                    Broadcast(new InstantiateObject()
+                    {
+                        ObjectId = objectID,
+                        ObjectType = monsterInfo.ObjectType,
+                        HP = monsterInfo.HP,
+                        Position = monsterInfo.position.ToPacketVector3()
+                    });
 
                     Status.Add(objectID, monsterInfo);
                 }
                 else
                 {
-                    var remains = nextSpawnTime - now;
-                    Broadcast(EliteMonsterTimer.Factory.Create(objectType, remains.TotalSeconds));
+                    var remains = (float)(nextSpawnTime - now).TotalSeconds;
+                    Broadcast(new EliteSpawnTimer()
+                    {
+                        ObjectType = objectType,
+                        Remains = remains
+                    });
                 }
             }
 
             LastExecuteTime_CheckEliteMonsterSpawnTimer = now;
         }
 
-        private void Broadcast(PacketBase packet)
+        private void Broadcast(IMessage packet)
         {
             for (int i = 0; i < Players.Count; i++)
             {
@@ -229,7 +239,7 @@ namespace GameServer.Room
             }
         }
 
-        private void Broadcast(PacketBase packet, ClientSession except)
+        private void Broadcast(IMessage packet, ClientSession except)
         {
             foreach(var player in Players)
             {

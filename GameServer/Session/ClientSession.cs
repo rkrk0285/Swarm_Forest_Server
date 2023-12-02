@@ -1,6 +1,7 @@
 ﻿using GameServer.Configuration;
 using GameServer.Room;
 using Google.Protobuf;
+using Google.Protobuf.GameProtocol;
 using NetworkLibrary;
 using Server.Packet;
 using StackExchange.Redis;
@@ -8,8 +9,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-
-using Domino.Networking.TCP;
 
 namespace Server.Session
 {
@@ -103,21 +102,15 @@ namespace Server.Session
             return SessionManager.Instance.Add(userId, this) ? userId : -1;
         }
 
-        //public void Send(IMessage packet)
-        //{
-        //    //string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
-        //    //PacketId msgId = (PacketId)Enum.Parse(typeof(PacketId), msgName);
-        //    //ushort size = (ushort)packet.CalculateSize();
-        //    //byte[] sendBuffer = new byte[size + 4];
-        //    //Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
-        //    //Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
-        //    //Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
-        //    //Send(new ArraySegment<byte>(sendBuffer));
-        //}
-
-        public void Send(PacketBase packet)
+        public void Send(IMessage packet)
         {
-            var sendBuffer = Coder.Encode(packet);
+            string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
+            PacketId msgId = (PacketId)Enum.Parse(typeof(PacketId), msgName);
+            ushort size = (ushort)packet.CalculateSize();
+            byte[] sendBuffer = new byte[size + 4];
+            Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
+            Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
+            Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
             Send(new ArraySegment<byte>(sendBuffer));
         }
     }

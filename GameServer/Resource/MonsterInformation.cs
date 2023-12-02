@@ -1,6 +1,5 @@
 ﻿using System;
 using GameServer.Resource;
-using UnityEngine;
 
 namespace GameServer.Resource
 {
@@ -24,7 +23,7 @@ namespace GameServer.Resource
 			{
 				ObjectType = 1,
 				HP = 2000,
-				position = new Vector3(centreX, 0, centreZ)
+				position = new(centreX, 0, centreZ)
 			});
 
             const float cornerX = 7 * 33, cornerZ = 7 * 33;

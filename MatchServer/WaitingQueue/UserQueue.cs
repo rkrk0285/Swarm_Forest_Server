@@ -40,7 +40,8 @@ namespace MatchServer.WaitingQueue
                 return;
             }
 
-            int[] participants = new int[2];
+            const int userCount = 1;
+            int[] participants = new int[userCount];
 
             lock (_lock)
             {
@@ -53,7 +54,7 @@ namespace MatchServer.WaitingQueue
                 }
 
                 waitingUsers.Add(userId, session);
-                if (waitingUsers.Count == 2)
+                if (waitingUsers.Count == userCount)
                 {
                     for (int i = 0; i < participants.Length; i++)
                     {
@@ -92,13 +93,13 @@ namespace MatchServer.WaitingQueue
                 await StaminaManager.Instance.ConsumeStamina(i, 10);
             }
 
-            // For random turn
-            if (rnd.Next(0, 2) == 1)
-            {
-                int tmp = participants[0];
-                participants[0] = participants[1];
-                participants[1] = tmp;
-            }
+            //// For random turn
+            //if (rnd.Next(0, 2) == 1)
+            //{
+            //    int tmp = participants[0];
+            //    participants[0] = participants[1];
+            //    participants[1] = tmp;
+            //}
 
             CreateRoomRequestDto createRoomRequestDto = new CreateRoomRequestDto()
             {
@@ -135,7 +136,8 @@ namespace MatchServer.WaitingQueue
 
         private async Task<bool> HasEnoughStamina(ClientSession session)
         {
-            return await StaminaManager.Instance.GetStamina(session.SessionId) >= 10;
+            //return await StaminaManager.Instance.GetStamina(session.SessionId) >= 10;
+            return true;
         }
     }
 }
