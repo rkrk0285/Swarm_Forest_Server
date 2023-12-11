@@ -18,6 +18,7 @@ enum PacketId {
     UPDATEOBJECTSTATUS = 11;
     ELITESPAWNTIMER = 12;
     RESULT = 13;
+    PLAYERLOCATION = 14;
 }
 
 message C_Join {
@@ -49,12 +50,6 @@ message MoveObject {
     Vector3 Position = 2;
 }
 
-message CastSkill {
-    int32 ObjectId = 1;
-    int32 SkillId = 2;
-    Vector3 Direction = 3;
-}
-
 message ObjectDead {
 	int32 ObjectId = 1;
 }
@@ -66,11 +61,22 @@ message ObjectIDRes {
 	int32 ObjectId = 1;
 }
 message InstantiateObject {
-    int32 ObjectId = 1;
-    int32 ObjectType = 2;
-    int32 HP = 3;
-    Vector3 Position = 4;
+    int32 CasterId = 1;
+    int32 ObjectId = 2;
+    int32 ObjectType = 3;
+    int32 HP = 4;
+    Vector3 Position = 5;
 }
+
+message CastSkill{
+    int32 CasterId = 1;
+    int32 ObjectId = 2;
+    int32 ObjectType = 3;
+    int32 HP = 4;
+    Vector3 Position = 5;
+    Vector3 Target = 6;
+}
+
 message UpdateObjectStatus {
     int32 ObjectId = 1;
     int32 HP = 2;
@@ -82,4 +88,8 @@ message EliteSpawnTimer {
 
 message Result{
     bool successed = 1;
+}
+
+message PlayerLocation{
+    int32 Location = 1;
 }

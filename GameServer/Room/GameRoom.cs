@@ -15,14 +15,14 @@ namespace GameServer.Room
 
         public List<ClientSession> Players { get; set; } = new List<ClientSession>();
 
-        const int MaxPlayer = 4;
+        const int MaxPlayer = 2;
 
         public Dictionary<int, ObjectStatus> Status { get; set; } = new Dictionary<int, ObjectStatus>();
         public Dictionary<int, DateTime> ObjectMoveBeginTime = new();
         public Dictionary<int, DateTime> ObjectMoveExecuteTime = new();
-        public Dictionary<int, KeyValuePair<DateTime, bool>> EliteMonsterSpawnTimer = new Dictionary<int, KeyValuePair<DateTime, bool>>();
+        public Dictionary<int, KeyValuePair<DateTime, bool>> EliteMonsterSpawnTimer = new();
 
-        public void Enter(ClientSession session, MatchJoin packet)
+        public void Enter(ClientSession? session, MatchJoin? packet)
         {
             //if (PlayerIDs.Contains(session.SessionId)) return;
             //PlayerIDs.Add(session.SessionId)
@@ -33,43 +33,88 @@ namespace GameServer.Room
             if (Players.Count == MaxPlayer) Start();
         }
 
-        public void MoveObject(ClientSession _, MoveObject packet)
+        public void Leave(int sessionId)
         {
-            if (!Status.ContainsKey(packet.ObjectId))
+            Players.RemoveAll((e) => e.SessionId == sessionId);
+            if(Players.Count == 0)
             {
-                return;
+                RoomManager.Instance.Remove(RoomID);
             }
+        }
 
-            //float velocity = 10f;
+        public void CastSkill(ClientSession? session, CastSkill? packet)
+        {
+            InstantiateObject(session, new InstantiateObject()
+            {
+                CasterId = packet.CasterId,
+                ObjectId = packet.ObjectId,
+                ObjectType = packet.ObjectType,
+                HP = packet.HP,
+                Position = packet.Position
+            });
+
+            var ObjectId = Status.Last().Key;
+
+            Thread.Sleep(10);
+            MoveObject(session, new MoveObject()
+            {
+                ObjectId = ObjectId,
+                Position = packet.Target
+            });
+        }
+
+        public void MoveObject(ClientSession? _, MoveObject? packet)
+        {
+            if (!Status.ContainsKey(packet.ObjectId)) return;
 
             var now = DateTime.Now;
             var objectID = packet.ObjectId;
-            ObjectMoveBeginTime[objectID] = now;
-            ObjectMoveExecuteTime[objectID] = now;
-            Push(MoveToTarget, objectID, now, Status[objectID].packetPosition, packet.Position);
-
-            //Broadcast(packet);
+            if (!ObjectMoveBeginTime.ContainsKey(objectID))
+            {
+                ObjectMoveBeginTime.Add(objectID, now);
+                ObjectMoveExecuteTime.Add(objectID, (now - TimeSpan.FromMilliseconds(MoveFPS)));
+            }
+            else
+            {
+                ObjectMoveBeginTime[objectID] = now;
+                ObjectMoveExecuteTime[objectID] = (now - TimeSpan.FromMilliseconds(MoveFPS));
+            }
+            Push(MoveToTarget, objectID, now, Status[objectID].packetPosition, packet.Position, 1);
         }
 
-        public void MoveToTarget(int ObjectID, DateTime movementTime, Vector3 current, Vector3 target)
+        const int MoveFPS = 33;
+
+        public void MoveToTarget(int ObjectID, DateTime movementTime, Vector3 current, Vector3 target, int count)
         {
-            var subVector = (current.ToUnityVector3() - target.ToUnityVector3());
+            if (!Status.ContainsKey(ObjectID)) return;
+
+            var current2D = new UnityEngine.Vector2(current.X, current.Z);
+            var target2D = new UnityEngine.Vector2(target.X, target.Z);
+
+            var subVector = (target2D - current2D);
+            var now = DateTime.Now;
 
             // 목적지에 이동했을 경우 종료 
-            if (subVector.sqrMagnitude <= 0) return;
+            if (subVector.magnitude <= 1f) return;
             // 새로운 이동 명령이 들어왔을 경우 이전에 실행중이던 이동명령을 무시
             if (ObjectMoveBeginTime[ObjectID] != movementTime) return;
             // 33ms에 한번 씩 실행하도록 제
-            if (ObjectMoveExecuteTime[ObjectID] + TimeSpan.FromMilliseconds(33) > DateTime.Now)
+            if (ObjectMoveExecuteTime[ObjectID] + TimeSpan.FromMilliseconds(MoveFPS) > now)
             {
-                Push(MoveToTarget, ObjectID, movementTime, current, target);
+                Push(MoveToTarget, ObjectID, movementTime, current, target, count + 1);
                 return;
             }
 
+            var velocity = 30f;
+            if(Status[ObjectID].ObjectType >= 100 && Status[ObjectID].ObjectType <= 105)
+            {
+                velocity = 50f;
+            }
 
-            var now = DateTime.Now;
             var deltaTime = (float)(now - ObjectMoveExecuteTime[ObjectID]).TotalMilliseconds;
-            var afterPosition = current.ToUnityVector3() + subVector.normalized * (10f / deltaTime);
+            if (deltaTime < 0f) return;
+            var afterPosition2D = current2D + subVector.normalized * (velocity * (deltaTime / 1000f));
+            var afterPosition = new UnityEngine.Vector3(afterPosition2D.x, 0, afterPosition2D.y);
 
             Status[ObjectID].position = afterPosition;
 
@@ -79,12 +124,14 @@ namespace GameServer.Room
                 Position = afterPosition.ToPacketVector3()
             });
 
+            Console.WriteLine($"[MOVEOBJECT] Count: {count}, ObjId: {ObjectID}\n\tMoved: [ X: {afterPosition.x}, Z: {afterPosition.z} ]\n\tTarget: [ X: {target.X}, Z: {target.Z} ]\n\tDistance: {subVector.magnitude}");
+
             ObjectMoveExecuteTime[ObjectID] = now;
 
-            Push(MoveToTarget, ObjectID, movementTime, afterPosition.ToPacketVector3(), target);
+            Push(MoveToTarget, ObjectID, movementTime, afterPosition.ToPacketVector3(), target, count);
         }
 
-        public void ObjectDead(ClientSession session, ObjectDead packet)
+        public void ObjectDead(ClientSession? _, ObjectDead? packet)
         {
             var objectID = packet.ObjectId;
             var objectType = Status[objectID].ObjectType;
@@ -97,10 +144,10 @@ namespace GameServer.Room
             Status.Remove(objectID);
             ObjectIDManager.Instance.Return(objectID);
             
-            Broadcast(packet, session);
+            Broadcast(packet);
         }
 
-        public void ObjectIDReq(ClientSession session, ObjectIDReq _)
+        public void ObjectIDReq(ClientSession? session, ObjectIDReq? _)
         {
             session.Send(new ObjectIDRes()
             {
@@ -108,43 +155,73 @@ namespace GameServer.Room
             });
         }
 
-        public void InstantiateObject(ClientSession _, InstantiateObject packet)
+        public void InstantiateObject(ClientSession? _, InstantiateObject? packet)
         {
-            Status.Add(packet.ObjectId, new ObjectStatus()
+            if (Status.ContainsKey(packet.ObjectId)) return;
+
+            var newObjectId = ObjectIDManager.Instance.Get();
+
+            Status.Add(newObjectId, new ObjectStatus()
             {
-                ObjectID = packet.ObjectId,
+                ObjectID = newObjectId,
                 ObjectType = packet.ObjectType,
                 HP = packet.HP,
                 position = packet.Position.ToUnityVector3()
             });
+            //var now = DateTime.Now;
+            Console.WriteLine($"[INSTANTIATE] ObjId: {newObjectId}\n\tPosition: [ X: {packet.Position.X}, Z: {packet.Position.Z}]");
+
+            packet.ObjectId = newObjectId;
 
             Broadcast(packet);
         }
 
-        public void UpdateObjectStatus(ClientSession _, UpdateObjectStatus packet)
+        public void UpdateObjectStatus(ClientSession? _, UpdateObjectStatus? packet)
         {
             if (!Status.ContainsKey(packet.ObjectId)) return;
 
-            Status[packet.ObjectId].HP = packet.HP;
-            //Status[packet.ObjectID].Level = packet.Level;
+            Console.WriteLine($"[UPDATEOBJECTSTATUS] HP: {packet.HP}");
 
-            Broadcast(packet);
+            Status[packet.ObjectId].HP = packet.HP;
+            if (Status[packet.ObjectId].HP <= 0)
+            {
+                ObjectDead(_, new ObjectDead()
+                {
+                    ObjectId = packet.ObjectId
+                });
+            }
+            else
+            {
+                Broadcast(packet);
+            }
         }
 
-        public bool IsGameRunning { get; private set; } = false;
+        public bool IsGameRunning { get; private set; } = true;
 
         public void Update()
         {
-            if (!IsGameRunning) return;
+            //if (!IsGameRunning) return;
 
-            CheckEliteMonsterSpawnTimer();
+            //CheckEliteMonsterSpawnTimer();
             Flush();
         }
 
         public void Start()
         {
-            IsGameRunning = true;
+            SendPlayerLocation();
             ResetEliteMonsterSpawnTimer();
+        }
+
+        private void SendPlayerLocation()
+        {
+            for(int i = 0; i < Players.Count; ++i)
+            {
+                //Send
+                Players[i].Send(new PlayerLocation()
+                {
+                    Location = i + 1
+                });
+            }   
         }
 
         private TimeSpan GetEliteMonsterCooldown(int objectType)
@@ -207,6 +284,8 @@ namespace GameServer.Room
                     var objectID = ObjectIDManager.Instance.Get();
                     var monsterInfo = MonsterInformation.Instance.Get(objectType);
                     monsterInfo.ObjectID = objectID;
+
+                    Status.Add(objectID, monsterInfo);
                     Broadcast(new InstantiateObject()
                     {
                         ObjectId = objectID,
@@ -214,8 +293,6 @@ namespace GameServer.Room
                         HP = monsterInfo.HP,
                         Position = monsterInfo.position.ToPacketVector3()
                     });
-
-                    Status.Add(objectID, monsterInfo);
                 }
                 else
                 {
@@ -236,16 +313,6 @@ namespace GameServer.Room
             for (int i = 0; i < Players.Count; i++)
             {
                 Players[i].Send(packet);
-            }
-        }
-
-        private void Broadcast(IMessage packet, ClientSession except)
-        {
-            foreach(var player in Players)
-            {
-                if (player.SessionId == except.SessionId) continue;
-
-                player.Send(packet);
             }
         }
     }

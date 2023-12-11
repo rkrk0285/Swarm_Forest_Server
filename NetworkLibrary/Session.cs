@@ -95,7 +95,13 @@ namespace NetworkLibrary
 
                 try
                 {
-                    int bytesTransferred = await socket.SendAsync(bufferList, SocketFlags.None);
+                    int bytesTransferred = 0;
+
+                    foreach(var buffer in bufferList)
+                    {
+                        bytesTransferred += await socket.SendAsync(buffer, SocketFlags.None);
+                    }
+
                     if (bytesTransferred <= 0)
                     {
                         Disconnect();

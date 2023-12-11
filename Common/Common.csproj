@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
   <ItemGroup>
     <PackageReference Include="StackExchange.Redis" Version="2.6.122" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" Version="4.3.0" />

@@ -16,15 +16,16 @@ namespace GameServer.Room
 
 		public int Get()
 		{
-			if(returnedIDs.Count > 0)
-			{
-				return returnedIDs.Dequeue();
-			}
-			else
-			{
-                return Id++;
-            }
-		}
+            return Id++;
+            //if(returnedIDs.Count > 0)
+            //{
+            //	return returnedIDs.Dequeue();
+            //}
+            //else
+            //{
+            //             return Id++;
+            //         }
+        }
 
 		public void Return(int ObjectID)
 		{

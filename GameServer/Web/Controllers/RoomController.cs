@@ -14,12 +14,12 @@ namespace GameServer.Web.Controllers
             GameRoom room = RoomManager.Instance.Create();
             for (int i = 0; i < createRoomRequestDto.Participants.Length; i++)
             {
-                //room.PlayerIds[i] = createRoomRequestDto.Participants[i];
+                room.PlayerIDs.Add(createRoomRequestDto.Participants[i]);
             }
 
             CreateRoomResponseDto createRoomResponseDto = new CreateRoomResponseDto()
             {
-                //RoomId = room.RoomId
+                RoomId = room.RoomID
             };
             return Ok(createRoomResponseDto);
         }

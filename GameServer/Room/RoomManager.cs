@@ -16,8 +16,11 @@
         {
             lock (roomLock)
             {
-                // 
-                return new GameRoom();
+                var gameRoom = new GameRoom();
+                gameRoom.RoomID = roomId;
+                rooms.Add(roomId, gameRoom);
+                roomId++;
+                return gameRoom;
             }
         }
 

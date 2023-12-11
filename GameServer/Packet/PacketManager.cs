@@ -23,6 +23,7 @@ namespace Server.Packet
             packetMakers.Add((ushort)PacketId.Objectidreq, MakePacket<ObjectIDReq>);
             packetMakers.Add((ushort)PacketId.Instantiateobject, MakePacket<InstantiateObject>);
             packetMakers.Add((ushort)PacketId.Updateobjectstatus, MakePacket<UpdateObjectStatus>);
+            packetMakers.Add((ushort)PacketId.Castskill, MakePacket<CastSkill>);
 
             packetHandlers.Add((ushort)PacketId.Matchjoin, PacketHandler.MatchJoinHandler);
             packetHandlers.Add((ushort)PacketId.Moveobject, PacketHandler.MoveObjectHandler);
@@ -30,6 +31,7 @@ namespace Server.Packet
             packetHandlers.Add((ushort)PacketId.Objectidreq, PacketHandler.ObjectIDReqHandler);
             packetHandlers.Add((ushort)PacketId.Instantiateobject, PacketHandler.InstantiateObjectHandler);
             packetHandlers.Add((ushort)PacketId.Updateobjectstatus, PacketHandler.UpdateObjectStatusHandler);
+            packetHandlers.Add((ushort)PacketId.Castskill, PacketHandler.CastSkillHandler);
         }
 
         // [size(2)][packetId(2)][...]

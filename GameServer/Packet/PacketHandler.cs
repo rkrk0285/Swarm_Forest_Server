@@ -45,6 +45,15 @@ namespace Server.Packet
             room?.Push(room.ObjectIDReq, clientSession, objectDeadPacket);
         }
 
+        public static void CastSkillHandler(PacketSession session, IMessage packet)
+        {
+            CastSkill castSkillPacket = packet as CastSkill;
+            ClientSession clientSession = session as ClientSession;
+
+            var room = clientSession.Room;
+            room?.Push(room.CastSkill, clientSession, castSkillPacket);
+        }
+
         public static void InstantiateObjectHandler(PacketSession session, IMessage packet)
         {
             InstantiateObject objectDeadPacket = packet as InstantiateObject;

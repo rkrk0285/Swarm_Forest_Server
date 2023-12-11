@@ -61,6 +61,8 @@ namespace GameServer
             ServerConfig.LoginServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:LoginServerPublicAddress");
             ServerConfig.MatchServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:MatchServerPublicAddress");
             ServerConfig.GameServerPublicAddress = builder.Configuration.GetValue<string>("ServerInfo:GameServerPublicAddress");
+
+            
             // ============================ Added ============================
 
             var app = builder.Build();

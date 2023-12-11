@@ -57,6 +57,8 @@ namespace Server.Session
         {
             SessionManager.Instance.Remove(SessionId);
 
+            Room?.Leave(SessionId);
+
             Debug.WriteLine($"OnDisconnected : {endPoint}");
         }
 
@@ -105,12 +107,13 @@ namespace Server.Session
         public void Send(IMessage packet)
         {
             string msgName = packet.Descriptor.Name.Replace("_", string.Empty);
-            PacketId msgId = (PacketId)Enum.Parse(typeof(PacketId), msgName);
+            PacketId msgId = (PacketId)Enum.Parse(typeof(PacketId), msgName, true);
             ushort size = (ushort)packet.CalculateSize();
             byte[] sendBuffer = new byte[size + 4];
             Array.Copy(BitConverter.GetBytes((ushort)(size + 4)), 0, sendBuffer, 0, sizeof(ushort));
             Array.Copy(BitConverter.GetBytes((ushort)msgId), 0, sendBuffer, 2, sizeof(ushort));
             Array.Copy(packet.ToByteArray(), 0, sendBuffer, 4, size);
+
             Send(new ArraySegment<byte>(sendBuffer));
         }
     }

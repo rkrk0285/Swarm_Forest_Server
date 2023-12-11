@@ -40,7 +40,7 @@ namespace MatchServer.WaitingQueue
                 return;
             }
 
-            const int userCount = 1;
+            const int userCount = 2;
             int[] participants = new int[userCount];
 
             lock (_lock)
